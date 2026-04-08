@@ -1,78 +1,306 @@
-import Image from "next/image";
-import { Geist, Geist_Mono } from "next/font/google";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+import { useState } from "react";
+import { useRouter } from "next/router";
+import Head from "next/head";
 
 export default function Home() {
+  const router = useRouter();
+  const [address, setAddress] = useState("");
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState("");
+
+  // ── Connect MetaMask / injected wallet ──────────────────────────────────
+  async function connectWallet() {
+    if (!window.ethereum) {
+      setError("No wallet detected. Install MetaMask or paste an address below.");
+      return;
+    }
+    try {
+      setConnecting(true);
+      setError("");
+      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
+      router.push(`/resume/${accounts[0]}`);
+    } catch {
+      setError("Wallet connection cancelled.");
+      setConnecting(false);
+    }
+  }
+
+  // ── Manual address lookup ────────────────────────────────────────────────
+  function handleLookup(e) {
+    e.preventDefault();
+    const trimmed = address.trim();
+    if (!trimmed) return;
+    if (!/^0x[a-fA-F0-9]{40}$/.test(trimmed)) {
+      setError("Please enter a valid 0x wallet address.");
+      return;
+    }
+    router.push(`/resume/${trimmed}`);
+  }
+
   return (
-    <div
-      className={`${geistSans.className} ${geistMono.className} flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black`}
-    >
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the index.js file.
+    <>
+      <Head>
+        <title>Onchain Resume — Base</title>
+        <meta name="description" content="Your verified onchain identity on Base" />
+      </Head>
+
+      <main style={styles.page}>
+        {/* Background glow */}
+        <div style={styles.glow1} />
+        <div style={styles.glow2} />
+
+        <div style={styles.container}>
+
+          {/* Badge */}
+          <div className="fade-up" style={styles.badge}>
+            <span style={styles.badgeDot} />
+            Built on Base
+          </div>
+
+          {/* Heading */}
+          <h1 className="fade-up-1" style={styles.heading}>
+            YOUR ONCHAIN<br />
+            <span style={styles.headingAccent}>RESUME</span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p className="fade-up-2" style={styles.subtext}>
+            Connect your wallet to generate a verified, shareable resume<br />
+            built entirely from your onchain activity on Base.
           </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs/pages/getting-started?utm_source=create-next-app&utm_medium=default-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+          {/* CTA */}
+          <div className="fade-up-3" style={styles.ctaGroup}>
+            <button
+              onClick={connectWallet}
+              disabled={connecting}
+              style={styles.connectBtn}
+              onMouseEnter={e => e.currentTarget.style.background = "#0af"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+            >
+              {connecting ? "Connecting..." : "⚡ Connect Wallet"}
+            </button>
+
+            <div style={styles.divider}>
+              <span style={styles.dividerLine} />
+              <span style={styles.dividerText}>or look up any wallet</span>
+              <span style={styles.dividerLine} />
+            </div>
+
+            <form onSubmit={handleLookup} style={styles.form}>
+              <input
+                type="text"
+                placeholder="0x... wallet address"
+                value={address}
+                onChange={e => { setAddress(e.target.value); setError(""); }}
+                style={styles.input}
+                onFocus={e => e.target.style.borderColor = "#0af"}
+                onBlur={e => e.target.style.borderColor = "#1e1e35"}
+              />
+              <button type="submit" style={styles.lookupBtn}>
+                View Resume →
+              </button>
+            </form>
+
+            {error && <p style={styles.error}>{error}</p>}
+          </div>
+
+          {/* Stats strip */}
+          <div className="fade-up-4" style={styles.statsStrip}>
+            {[
+              { label: "Chain", value: "Base Mainnet" },
+              { label: "Data Source", value: "Alchemy" },
+              { label: "Verified By", value: "Onchain Activity" },
+            ].map(s => (
+              <div key={s.label} style={styles.stat}>
+                <span style={styles.statValue}>{s.value}</span>
+                <span style={styles.statLabel}>{s.label}</span>
+              </div>
+            ))}
+          </div>
+
         </div>
       </main>
-    </div>
+    </>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    position: "relative",
+    overflow: "hidden",
+    padding: "2rem",
+  },
+  glow1: {
+    position: "absolute",
+    width: 600,
+    height: 600,
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(0,170,255,0.08) 0%, transparent 70%)",
+    top: "-10%",
+    left: "-10%",
+    pointerEvents: "none",
+  },
+  glow2: {
+    position: "absolute",
+    width: 500,
+    height: 500,
+    borderRadius: "50%",
+    background: "radial-gradient(circle, rgba(124,58,237,0.08) 0%, transparent 70%)",
+    bottom: "-5%",
+    right: "-5%",
+    pointerEvents: "none",
+  },
+  container: {
+    maxWidth: 600,
+    width: "100%",
+    textAlign: "center",
+    position: "relative",
+    zIndex: 1,
+  },
+  badge: {
+    display: "inline-flex",
+    alignItems: "center",
+    gap: 8,
+    background: "rgba(0,170,255,0.08)",
+    border: "1px solid rgba(0,170,255,0.2)",
+    borderRadius: 100,
+    padding: "6px 16px",
+    fontSize: 12,
+    color: "#0af",
+    fontFamily: "var(--font-mono)",
+    marginBottom: "2rem",
+    letterSpacing: "0.05em",
+  },
+  badgeDot: {
+    width: 6,
+    height: 6,
+    borderRadius: "50%",
+    background: "#0af",
+    display: "inline-block",
+    animation: "pulse-ring 2s infinite",
+  },
+  heading: {
+    fontFamily: "var(--font-display)",
+    fontSize: "clamp(56px, 10vw, 96px)",
+    lineHeight: 0.95,
+    letterSpacing: "0.02em",
+    color: "#e2e8f0",
+    marginBottom: "1.5rem",
+  },
+  headingAccent: {
+    color: "#0af",
+    WebkitTextStroke: "0px",
+  },
+  subtext: {
+    color: "#6b7280",
+    fontSize: 16,
+    lineHeight: 1.7,
+    marginBottom: "2.5rem",
+    fontWeight: 300,
+  },
+  ctaGroup: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "1rem",
+    alignItems: "center",
+    marginBottom: "3rem",
+  },
+  connectBtn: {
+    background: "transparent",
+    border: "1px solid #0af",
+    color: "#0af",
+    padding: "14px 32px",
+    borderRadius: 8,
+    fontSize: 15,
+    fontFamily: "var(--font-body)",
+    fontWeight: 600,
+    cursor: "pointer",
+    width: "100%",
+    maxWidth: 400,
+    transition: "all 0.2s ease",
+    letterSpacing: "0.02em",
+  },
+  divider: {
+    display: "flex",
+    alignItems: "center",
+    gap: 12,
+    width: "100%",
+    maxWidth: 400,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    background: "#1e1e35",
+  },
+  dividerText: {
+    color: "#6b7280",
+    fontSize: 12,
+    fontFamily: "var(--font-mono)",
+    whiteSpace: "nowrap",
+  },
+  form: {
+    display: "flex",
+    gap: 8,
+    width: "100%",
+    maxWidth: 400,
+  },
+  input: {
+    flex: 1,
+    background: "#0f0f1a",
+    border: "1px solid #1e1e35",
+    borderRadius: 8,
+    padding: "12px 16px",
+    color: "#e2e8f0",
+    fontFamily: "var(--font-mono)",
+    fontSize: 13,
+    outline: "none",
+    transition: "border-color 0.2s",
+  },
+  lookupBtn: {
+    background: "#16162a",
+    border: "1px solid #1e1e35",
+    color: "#e2e8f0",
+    padding: "12px 20px",
+    borderRadius: 8,
+    fontSize: 13,
+    fontFamily: "var(--font-body)",
+    fontWeight: 500,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+    transition: "all 0.2s",
+  },
+  error: {
+    color: "#f87171",
+    fontSize: 13,
+    fontFamily: "var(--font-mono)",
+  },
+  statsStrip: {
+    display: "flex",
+    justifyContent: "center",
+    gap: "2rem",
+    borderTop: "1px solid #1e1e35",
+    paddingTop: "2rem",
+  },
+  stat: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+    alignItems: "center",
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: "#e2e8f0",
+  },
+  statLabel: {
+    fontSize: 11,
+    color: "#6b7280",
+    fontFamily: "var(--font-mono)",
+    textTransform: "uppercase",
+    letterSpacing: "0.08em",
+  },
+};
